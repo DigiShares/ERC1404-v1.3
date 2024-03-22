@@ -1,66 +1,21 @@
-## Foundry
+# ERC1404 implementation 
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+This repository contains ERC1404 based smart contracts with following main functionalities  
 
-Foundry consists of:
+1.  Standard ERC20 functionality
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+2.  ERC1404 compliance
 
-## Documentation
+3.  Control of transfer restrictions with Buy and Sell. There are two variable that control this
+	mapping (address => uint256) private _buyRestriction;  
+	mapping (address => uint256) private _sellRestriction;	
+The integer is linux epoch time.  If a address wants to receive tokens from another address, it must have date/time in _buyRestriciton less than the current date/time and must not be 0 which is default. Similarly if an address want to send token it must have an entry in  sellRestriction with date/time less than current date time.  Both sender and receive addresses must meet above condition, only then transfer will happen 
 
-https://book.getfoundry.sh/
+4.  isTradingAllowed     by default this variable will be true which means transfer will happen.  But owner of the contract can stop all transfers by setting this to false.  this is also checked in detectTransferRestriction before any transfers
 
-## Usage
+5.  Whitelist Authority control.       Following mapping manages this
+only owner of this control can set another address true,  Addresses in this mapping can manage whitelisting of addresses. Owner is by default added in this mapping in constructor 
 
-### Build
+6.  Minting and Burning     only owner of this contract can mint or burn new tokens
 
-```shell
-$ forge build
-```
-
-### Test
-
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+The contract use libraries like OpenZeppelin 
