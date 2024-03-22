@@ -17,30 +17,30 @@ contract ERC1404_Default_Values is ERC1404_Base_Setup {
     }
 
     // Check default decimal places which must be 18
-    function test_Check_Decimals() public {
+    function test_Check_Decimals() public view {
         assertEq(token.decimals(), decimalsPlaces);
     }
 
     // Check default total supply of tokens
-    function test_Check_Total_Supply() public {
+    function test_Check_Total_Supply() public view {
         assertEq(token.totalSupply(), initialSupply);
     }
 
     // Check owner contains the total balance minted
-    function test_Check_BalanceOf_Issuer() public {
+    function test_Check_BalanceOf_Issuer() public view {
         assertEq(token.balanceOf(token.owner()), initialSupply);
     }
 
     // Check any other address that must not contain any tokens
     function test_Check_Default_BalanceOf_Account(
         address randomAddress
-    ) public {
+    ) public view {
         vm.assume(randomAddress != address(this) && randomAddress != token.owner());
         assertEq(token.balanceOf(randomAddress), 0);
     }
 
     // Check swap contract address is whitelisted
-    function test_Check_Account_Is_Whitelisted() public {
+    function test_Check_Account_Is_Whitelisted() public view {
         (uint receiveRestriction, uint sendRestriction) = token.getKYCData(atomicSwapContractAddress);
         assertEq(receiveRestriction, 1);
         assertEq(sendRestriction, 1);
@@ -49,7 +49,7 @@ contract ERC1404_Default_Values is ERC1404_Base_Setup {
     // Check any random address is not whitelisted
     function test_Check_Account_Is_Not_Whitelisted(
         address randomAddress
-    ) public {
+    ) public view {
         vm.assume(randomAddress != address(this) && randomAddress != token.owner());
         (uint receiveRestriction, uint sendRestriction) = token.getKYCData(randomAddress);
         assertEq(receiveRestriction, 0);
@@ -57,16 +57,16 @@ contract ERC1404_Default_Values is ERC1404_Base_Setup {
     }
 
     // Test tradingHoldingPeriod is set to it's default value 1
-    function test_Trading_Holding_Period_Has_Default_Value() public {
+    function test_Trading_Holding_Period_Has_Default_Value() public view {
         assertEq(token.tradingHoldingPeriod(), tradingHoldingPeriod);
     }
 
     // Test allowedInvestors is set to it's default value 0
-    function test_Allowed_Investors_Set_To_Default_Value() public {
+    function test_Allowed_Investors_Set_To_Default_Value() public view {
         assertEq(token.allowedInvestors(), allowedInvestors);
     }
 
-    function test_Check_Default_Name_And_Symbol_Values() public {
+    function test_Check_Default_Name_And_Symbol_Values() public view {
         assertEq(token.name(), name);
         assertEq(token.symbol(), symbol);
         assertEq(token.IssuancePlatform(), "DigiShares");

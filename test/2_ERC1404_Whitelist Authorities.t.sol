@@ -17,21 +17,21 @@ contract ERC1404_Whitelist_Authorities is ERC1404_Base_Setup {
         ERC1404_Base_Setup.setUp();
     }
 
-    function test_CheckDefaultWhiteListAuthorityStatusForOwner() public {
+    function test_CheckDefaultWhiteListAuthorityStatusForOwner() public view{
         // Check that owner of the token address is  whitelisted by default
         (uint receiveRestriction, uint sendRestriction) = token.getKYCData(token.owner());
         assertEq(receiveRestriction, 1);
         assertEq(sendRestriction, 1);
     }
 
-    function test_CheckDefaultWhiteListAuthorityStatusForSwapContract() public {
+    function test_CheckDefaultWhiteListAuthorityStatusForSwapContract() public view{
         // Check address set as Swap Token is also whitelisted
         (uint receiveRestriction, uint sendRestriction) = token.getKYCData(atomicSwapContractAddress);
         assertEq(receiveRestriction, 1);
         assertEq(sendRestriction, 1);
     }
 
-    function test_getWhitelistAuthorityStatusNotWhitelisted() public {
+    function test_getWhitelistAuthorityStatusNotWhitelisted() public view{
         bool v1 = token.getWhitelistAuthorityStatus(addr1);
         assertEq(v1, false);
     }

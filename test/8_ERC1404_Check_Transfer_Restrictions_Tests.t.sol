@@ -31,7 +31,7 @@ contract ERC1404_Check_Transfer_Restrictions_Tests is ERC1404_Base_Setup {
         token.modifyKYCData(addr3, 1, 1);
     }
 
-    function test_Test_All_Restriction_Codes() public {
+    function test_Test_All_Restriction_Codes() public view{
         assertEq(
             token.messageForTransferRestriction(0),
             "No transfer restrictions found"
@@ -66,7 +66,7 @@ contract ERC1404_Check_Transfer_Restrictions_Tests is ERC1404_Base_Setup {
         );
     }
 
-    function test_No_transfer_restrictions_found(uint amount) public {
+    function test_No_transfer_restrictions_found(uint amount) public view{
         vm.assume(amount > 0);
         assertEq(
             token.detectTransferRestriction(addr1, addr2, amount),
@@ -127,7 +127,7 @@ contract ERC1404_Check_Transfer_Restrictions_Tests is ERC1404_Base_Setup {
         );
     }
 
-    function test_Zero_Transfer_Is_Not_Allowed() public {
+    function test_Zero_Transfer_Is_Not_Allowed() public view{
         // this transfer is not possible
         assertEq(
             token.detectTransferRestriction(token.owner(), addr1, 0),
@@ -146,7 +146,7 @@ contract ERC1404_Check_Transfer_Restrictions_Tests is ERC1404_Base_Setup {
         );
     }
 
-    function test_Receiver_Is_Blocked_Or_Not_Whitelisted(uint amount) public {
+    function test_Receiver_Is_Blocked_Or_Not_Whitelisted(uint amount) public view{
         amount = bound(amount, 1, initialSupply);
         //this transfer is not possible
         assertEq(
