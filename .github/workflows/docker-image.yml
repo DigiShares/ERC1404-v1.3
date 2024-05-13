@@ -7,12 +7,9 @@ on:
 jobs:
 
   test:
-    runs-on: ghcr.io/foundry-rs/foundry:nightly-a26edce5d2e1ad28d833328b22e857ecb7075e63
+    runs-on: ghcr.io/foundry-rs/foundry:nightly-a117fbfa41edbaa1618ed099d78d65727bff4790
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Build the Docker image
-      run: docker build . --file Dockerfile --tag my-image-name:$(date +%s)
     - name: install forge
       run: forge install --no-git
     - name: run tests
