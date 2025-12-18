@@ -12,6 +12,8 @@ import "forge-std/Test.sol";
 import "../src/ERC1404.sol";
 import "./helpers/ERC1404_Base_Setup.sol";
 
+import {IAccessControl} from "lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
+
 contract ERC1404_Whitelist_Authorities is ERC1404_Base_Setup {
     function setUp() public override {
         ERC1404_Base_Setup.setUp();
@@ -32,45 +34,50 @@ contract ERC1404_Whitelist_Authorities is ERC1404_Base_Setup {
     }
 
     function test_getWhitelistAuthorityStatusNotWhitelisted() public view{
-        bool v1 = token.getWhitelistAuthorityStatus(addr1);
+        bool v1 = token.hasRole(token.WHITELIST_ROLE(), addr1);
         assertEq(v1, false);
     }
 
     function test_SetWhitelistAuthorityStatus() public {
-        token.setWhitelistAuthorityStatus(addr1);
-        bool v1 = token.getWhitelistAuthorityStatus(addr1);
+        token.grantRole(token.WHITELIST_ROLE(), addr1);
+        bool v1 = token.hasRole(token.WHITELIST_ROLE(), addr1);
         assertEq(v1, true);
     }
 
     function test_removeWhitelistAuthorityStatusAsDeployer() public {
-        token.setWhitelistAuthorityStatus(addr1);
+        token.grantRole(token.WHITELIST_ROLE(), addr1);
         // remove whitelist authority status
-        token.removeWhitelistAuthorityStatus(addr1);
-        bool v2 = token.getWhitelistAuthorityStatus(addr1);
+        token.revokeRole(token.WHITELIST_ROLE(), addr1);
+        bool v2 = token.hasRole(token.WHITELIST_ROLE(), addr1);
         assertEq(v2, false);
     }
 
     function test_removeWhitelistAuthorityStatusAsTokenOwner() public {
         vm.startPrank(token.owner());
-        token.setWhitelistAuthorityStatus(addr1);
+        token.grantRole(token.WHITELIST_ROLE(), addr1);
         // remove whitelist authority status
-        token.removeWhitelistAuthorityStatus(addr1);
-        bool v2 = token.getWhitelistAuthorityStatus(addr1);
+        token.revokeRole(token.WHITELIST_ROLE(), addr1);
+        bool v2 = token.hasRole(token.WHITELIST_ROLE(), addr1);
         assertEq(v2, false);
         vm.stopPrank();
     }
 
     function test_notAuthorizedModifyKYCData() public {
-        vm.prank(addr1);
+        vm.startPrank(addr1);
         vm.expectRevert(
-            "Only authorized addresses can control whitelisting of holder addresses"
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                addr1,
+                token.WHITELIST_ROLE()
+            )
         );
         token.modifyKYCData(addr2, 1, 1);
+        vm.stopPrank();
     }
 
     function test_authorizedModifyKYCData() public {
         // set whitelist authority
-        token.setWhitelistAuthorityStatus(addr1);
+        token.grantRole(token.WHITELIST_ROLE(), addr1);
         // now switch to whitelist authority and set another address whitelisted
         vm.prank(addr1);
         token.modifyKYCData(addr2, 1, 1);

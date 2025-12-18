@@ -5,18 +5,22 @@ pragma solidity 0.8.25;
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
 import {IERC1404} from "./IERC1404.sol";
+import {AccessControlEnumerable} from "openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
 
-contract ERC1404 is ERC20, Ownable, IERC1404 {
+contract ERC1404 is ERC20, Ownable, IERC1404, AccessControlEnumerable {
+    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
+    bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
+    bytes32 public constant WHITELIST_ROLE = keccak256("WHITELIST_ROLE");
+    bytes32 public constant COMPLIANCE_ROLE = keccak256("COMPLIANCE_ROLE");
+    bytes32 public constant META_DATA_ROLE = keccak256("META_DATA_ROLE");
+
     // Set receive and send restrictions on investors
     // date is Linux Epoch datetime
     // Default values is 0 which means investor is not whitelisted
     mapping(address => uint256) private _receiveRestriction;
     mapping(address => uint256) private _sendRestriction;
 
-    // These addresses act as whitelist authority and can call modifyKYCData
-    // There is possibility that issuer may let third party like Exchange to control
-    // whitelisting addresses
-    mapping(address => bool) private _whitelistControlAuthority;
 
     event TransferRestrictionDetected(address indexed from, address indexed to, string message, uint8 errorCode);
     event BurnTokens(address indexed account, uint256 amount);
@@ -32,7 +36,7 @@ contract ERC1404 is ERC20, Ownable, IERC1404 {
     event TransferFrom(address indexed spender, address indexed sender, address indexed recipient, uint256 amount);
     event IssuerForceTransfer(address indexed from, address indexed to, uint256 amount);
 
-    string public constant version = "1.3";
+    string public constant version = "1.3.1";
     string public constant IssuancePlatform = "DigiShares";
     string public constant issuanceProtocol = "ERC-1404";
     string public ShareCertificate;
@@ -84,6 +88,13 @@ contract ERC1404 is ERC20, Ownable, IERC1404 {
         uint64 _tradingHoldingPeriod
     ) ERC20(_name, _symbol) Ownable(msg.sender) {
         address tmpSenderAddress = msg.sender;
+        _grantRole(DEFAULT_ADMIN_ROLE, tmpSenderAddress);
+        _grantRole(PAUSER_ROLE, tmpSenderAddress);
+        _grantRole(BURNER_ROLE, tmpSenderAddress);
+        _grantRole(MINTER_ROLE, tmpSenderAddress);
+        _grantRole(WHITELIST_ROLE, tmpSenderAddress);
+        _grantRole(COMPLIANCE_ROLE, tmpSenderAddress);
+        _grantRole(META_DATA_ROLE, tmpSenderAddress);
 
         _decimals = _decimalsPlaces;
         tradingHoldingPeriod = _tradingHoldingPeriod;
@@ -96,9 +107,6 @@ contract ERC1404 is ERC20, Ownable, IERC1404 {
 
         allowedInvestors = _allowedInvestors;
 
-        // add message sender to whitelist authority list
-        _whitelistControlAuthority[tmpSenderAddress] = true;
-
         ShareCertificate = _ShareCertificate;
         CompanyHomepage = _CompanyHomepage;
         CompanyLegalDocs = _CompanyLegalDocs;
@@ -110,13 +118,6 @@ contract ERC1404 is ERC20, Ownable, IERC1404 {
     // ------------------------------------------------------------------------
     // Modifiers for this contract
     // ------------------------------------------------------------------------
-    modifier onlyWhitelistControlAuthority() {
-        require(
-            _whitelistControlAuthority[msg.sender] == true,
-            "Only authorized addresses can control whitelisting of holder addresses"
-        );
-        _;
-    }
 
     modifier notRestricted(address from, address to, uint256 value) {
         uint8 restrictionCode = detectTransferRestriction(from, to, value);
@@ -134,7 +135,7 @@ contract ERC1404 is ERC20, Ownable, IERC1404 {
         return _decimals;
     }
 
-    function mint(address account, uint256 amount) external Ownable.onlyOwner() returns (bool) {
+    function mint(address account, uint256 amount) external onlyRole(MINTER_ROLE) returns (bool) {
         require(account != address(0), "Minting address cannot be zero");
         require(_receiveRestriction[account] != 0, "Address is not yet whitelisted by issuer");
         require(amount > 0, "Zero amount cannot be minted");
@@ -164,7 +165,7 @@ contract ERC1404 is ERC20, Ownable, IERC1404 {
         return true;
     }
 
-    function burn(address account, uint256 amount) external Ownable.onlyOwner() returns (bool) {
+    function burn(address account, uint256 amount) external onlyRole(BURNER_ROLE) returns (bool) {
         require(account != address(0), "Burn address cannot be zero");
         require(amount > 0, "Zero amount cannot be burned");
 
@@ -182,17 +183,17 @@ contract ERC1404 is ERC20, Ownable, IERC1404 {
     // ------------------------------------------------------------------------
     // Token Links and Document information management
     // ------------------------------------------------------------------------
-    function resetShareCertificate(string calldata _ShareCertificate) external Ownable.onlyOwner() {
+    function resetShareCertificate(string calldata _ShareCertificate) external onlyRole(META_DATA_ROLE)  {
         ShareCertificate = _ShareCertificate;
         emit ShareCertificateReset(_ShareCertificate);
     }
 
-    function resetCompanyHomepage(string calldata _CompanyHomepage) external Ownable.onlyOwner() {
+    function resetCompanyHomepage(string calldata _CompanyHomepage) external onlyRole(META_DATA_ROLE)  {
         CompanyHomepage = _CompanyHomepage;
         emit CompanyHomepageReset(_CompanyHomepage);
     }
 
-    function resetCompanyLegalDocs(string calldata _CompanyLegalDocs) external Ownable.onlyOwner() {
+    function resetCompanyLegalDocs(string calldata _CompanyLegalDocs) external onlyRole(META_DATA_ROLE) {
         CompanyLegalDocs = _CompanyLegalDocs;
         emit CompanyLegalDocsReset(_CompanyLegalDocs);
     }
@@ -202,7 +203,7 @@ contract ERC1404 is ERC20, Ownable, IERC1404 {
     // --------------------------------------------------------------------------------------
     // _allowedInvestors = 0    No limit on number of investors (or number of addresses with non-zero balance)
     // _allowedInvestors > 0    only X number of addresses can have non zero balance
-    function resetAllowedInvestors(uint64 _allowedInvestors) external Ownable.onlyOwner() {
+    function resetAllowedInvestors(uint64 _allowedInvestors) external onlyRole(COMPLIANCE_ROLE) {
         if (_allowedInvestors != ANY_NUMBER_OF_TOKEN_HOLDERS_ALLOWED && _allowedInvestors < currentTotalInvestors) {
             revert("Allowed Token holders cannot be less than current token holders with non-zero balance");
         }
@@ -211,40 +212,23 @@ contract ERC1404 is ERC20, Ownable, IERC1404 {
         emit AllowedInvestorsReset(_allowedInvestors);
     }
 
-    function setTradingHoldingPeriod(uint64 _tradingHoldingPeriod) external Ownable.onlyOwner() {
+    function setTradingHoldingPeriod(uint64 _tradingHoldingPeriod) external onlyRole(COMPLIANCE_ROLE) {
         tradingHoldingPeriod = _tradingHoldingPeriod;
         emit HoldingPeriodReset(_tradingHoldingPeriod);
     }
 
-    //-----------------------------------------------------------------------
-    // Manage whitelist authority and KYC status
-    //-----------------------------------------------------------------------
-
-    function setWhitelistAuthorityStatus(address user) external Ownable.onlyOwner() {
-        _whitelistControlAuthority[user] = true;
-        emit WhitelistAuthorityStatusSet(user);
-    }
-
-    function removeWhitelistAuthorityStatus(address user) external Ownable.onlyOwner() {
-        delete _whitelistControlAuthority[user];
-        emit WhitelistAuthorityStatusRemoved(user);
-    }
-
-    function getWhitelistAuthorityStatus(address user) external view returns (bool) {
-        return _whitelistControlAuthority[user];
-    }
 
     // Set Receive and Send restrictions on addresses. Both values are EPOCH time
     function modifyKYCData(address account, uint256 receiveRestriction, uint256 sendRestriction)
         external
-        onlyWhitelistControlAuthority
+        onlyRole(WHITELIST_ROLE)
     {
         setupKYCDataForUser(account, receiveRestriction, sendRestriction);
     }
 
     function bulkWhitelistWallets(address[] calldata account, uint256 receiveRestriction, uint256 sendRestriction)
         external
-        onlyWhitelistControlAuthority
+        onlyRole(WHITELIST_ROLE)
     {
         if (account.length > 50) {
             revert("Bulk whitelisting more than 50 addresses is not allowed");
@@ -373,7 +357,7 @@ contract ERC1404 is ERC20, Ownable, IERC1404 {
     }
 
     // Force transfer of token back to issuer
-    function forceTransferToken(address from, uint256 amount) external Ownable.onlyOwner() returns (bool) {
+    function forceTransferToken(address from, uint256 amount) external onlyRole(COMPLIANCE_ROLE) returns (bool) {
         transferSharesBetweenInvestors(from, Ownable.owner(), amount, true);
         emit IssuerForceTransfer(from, Ownable.owner(), amount);
         return true;
@@ -428,5 +412,9 @@ contract ERC1404 is ERC20, Ownable, IERC1404 {
 	1. Integration with openzeppelin library
 	
 	2. detectTransferRestriction  restructure
+
+    Version 1.3.1
+
+    1. Added AccessControlEnumerable for role based access control
 
 */

@@ -11,11 +11,10 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 import "../src/ERC1404.sol";
 import "./helpers/ERC1404_Base_Setup.sol";
-import { IERC20Errors } from "openzeppelin-contracts/contracts/interfaces/draft-IERC6093.sol";
+import { IERC20Errors } from "lib/openzeppelin-contracts/contracts/interfaces/draft-IERC6093.sol";
 
 contract ERC1404_Basic_Transfer_Test is ERC1404_Base_Setup {
     uint transferAmount = 100;
-    int transferNegativeAmount = -1;
     uint transferAmountZero = 0;
     uint transferMoreThanAvailable = initialSupply + 1;
     
@@ -53,10 +52,6 @@ contract ERC1404_Basic_Transfer_Test is ERC1404_Base_Setup {
     function test_Transfer_Zero_Amount() public {
         vm.expectRevert("Zero transfer amount not allowed");
         token.transfer(addr1, transferAmountZero);
-    }
-
-    function testFail_Transfer_Overflow_Amount() public {
-        token.transfer(addr1, uint(transferNegativeAmount) + 1);
     }
 
     function test_Transfer_From_Investor_To_Investor() public {

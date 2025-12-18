@@ -13,7 +13,8 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 import "../src/ERC1404.sol";
 import "./helpers/ERC1404_Base_Setup.sol";
-import { IERC20Errors } from "openzeppelin-contracts/contracts/interfaces/draft-IERC6093.sol";
+import { IERC20Errors } from "lib/openzeppelin-contracts/contracts/interfaces/draft-IERC6093.sol";
+import {IAccessControl} from "lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
 
 contract ERC1404_Check_Mint_Burns is ERC1404_Base_Setup {
     function setUp() public override {
@@ -39,8 +40,8 @@ contract ERC1404_Check_Mint_Burns is ERC1404_Base_Setup {
 
     function test_Mint_New_Tokens_As_Investor(uint128 amount) public {
         vm.assume(amount > 0);
-        vm.prank(addr1);
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, addr1));
+        vm.startPrank(addr1);
+        vm.expectRevert(abi.encodeWithSelector(IAccessControl.AccessControlUnauthorizedAccount.selector, addr1, token.MINTER_ROLE()));
         token.mint(addr1, amount);
     }
 
