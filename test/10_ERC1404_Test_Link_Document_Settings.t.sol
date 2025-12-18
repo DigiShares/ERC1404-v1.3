@@ -10,7 +10,9 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 import "../src/ERC1404.sol";
 import "./helpers/ERC1404_Base_Setup.sol";
-import {Ownable} from "openzeppelin-contracts/contracts/access/Ownable.sol";
+import {Ownable} from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
+
+import {IAccessControl} from "lib/openzeppelin-contracts/contracts/access/IAccessControl.sol";
 
 contract ERC1404_Test_Link_Document_Settings is ERC1404_Base_Setup {
     function setUp() public override {
@@ -23,10 +25,15 @@ contract ERC1404_Test_Link_Document_Settings is ERC1404_Base_Setup {
         assertEq(s, "New Share Certificate Link");
     }
 
-    function test_Check_Reset_Share_Certificate_OnlyOwner() public {
-        vm.prank(addr1);
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, addr1));
+    function test_Check_Reset_Share_Certificate_OnlyRole() public {
+        vm.startPrank(addr1);
+        vm.expectRevert( abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                addr1,
+                token.META_DATA_ROLE()
+            ));
         token.resetShareCertificate("New Share Certificate Link");
+        vm.stopPrank();
     }
 
     function test_Reset_Company_Homepage() public {
@@ -35,10 +42,15 @@ contract ERC1404_Test_Link_Document_Settings is ERC1404_Base_Setup {
         assertEq(s, "New Company Home Page Link");
     }
 
-    function test_Check_Reset_Company_Homepage_OnlyOwner() public {
-        vm.prank(addr1);
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, addr1));
+    function test_Check_Reset_Company_Homepage_OnlyRole() public {
+        vm.startPrank(addr1);
+        vm.expectRevert( abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                addr1,
+                token.META_DATA_ROLE()
+            ));
         token.resetCompanyHomepage("New Company Home Page Link");
+        vm.stopPrank();
     }
 
     function test_Reset_Company_Legal_Docs() public {
@@ -47,9 +59,14 @@ contract ERC1404_Test_Link_Document_Settings is ERC1404_Base_Setup {
         assertEq(s, "New Company Legal Documents Link");
     }
 
-    function test_Check_Reset_Company_Legal_Docs_OnlyOwner() public {
-        vm.prank(addr1);
-        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, addr1));
+    function test_Check_Reset_Company_Legal_Docs_OnlyRole() public {
+        vm.startPrank(addr1);
+        vm.expectRevert( abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector,
+                addr1,
+                token.META_DATA_ROLE()
+            ));
         token.resetCompanyLegalDocs("New Company Legal Documents Link");
+        vm.stopPrank();
     }
 }
