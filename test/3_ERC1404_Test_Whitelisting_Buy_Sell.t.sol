@@ -68,9 +68,9 @@ contract ERC1404_Test_Whitelisting_Buy_Sell is ERC1404_Base_Setup {
         token.transfer(addr2, transferAmount);
     }
 
-    // This should most likely revert but does not
     function test_Tokens_Receive_Restriction_Mint_Receive_Restricted() public {
         token.modifyKYCData(addr2, EPOCHTimeInFuture, EPOCHTimeInFuture);
+        vm.expectRevert("Address is not yet whitelisted by issuer");
         token.mint(addr2, transferAmount);
     }
 
