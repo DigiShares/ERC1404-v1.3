@@ -8,7 +8,6 @@ import {IERC1404} from "./IERC1404.sol";
 import {AccessControlEnumerable} from "openzeppelin-contracts/contracts/access/extensions/AccessControlEnumerable.sol";
 
 contract ERC1404 is ERC20, Ownable, IERC1404, AccessControlEnumerable {
-    bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant WHITELIST_ROLE = keccak256("WHITELIST_ROLE");
@@ -89,7 +88,6 @@ contract ERC1404 is ERC20, Ownable, IERC1404, AccessControlEnumerable {
     ) ERC20(_name, _symbol) Ownable(msg.sender) {
         address tmpSenderAddress = msg.sender;
         _grantRole(DEFAULT_ADMIN_ROLE, tmpSenderAddress);
-        _grantRole(PAUSER_ROLE, tmpSenderAddress);
         _grantRole(BURNER_ROLE, tmpSenderAddress);
         _grantRole(MINTER_ROLE, tmpSenderAddress);
         _grantRole(WHITELIST_ROLE, tmpSenderAddress);
@@ -137,7 +135,7 @@ contract ERC1404 is ERC20, Ownable, IERC1404, AccessControlEnumerable {
 
     function mint(address account, uint256 amount) external onlyRole(MINTER_ROLE) returns (bool) {
         require(account != address(0), "Minting address cannot be zero");
-        require(_receiveRestriction[account] != 0, "Address is not yet whitelisted by issuer");
+        require(_receiveRestriction[account] != 0 && _receiveRestriction[account] <= block.timestamp, "Address is not yet whitelisted by issuer");
         require(amount > 0, "Zero amount cannot be minted");
 
         // This is special case while minting tokens. if issuer is trying to mint to a address while max token holder restriction
@@ -385,6 +383,12 @@ contract ERC1404 is ERC20, Ownable, IERC1404, AccessControlEnumerable {
         if (ERC20.balanceOf(sender) == 0 && sender != Ownable.owner()) {
             currentTotalInvestors = currentTotalInvestors - 1;
         }
+    }
+
+    function transferOwnership(address newOwner) public override onlyOwner {
+        super.transferOwnership(newOwner);
+        // Update KYC data for new owner
+        setupKYCDataForUser(newOwner, 1, 1);
     }
 }
 

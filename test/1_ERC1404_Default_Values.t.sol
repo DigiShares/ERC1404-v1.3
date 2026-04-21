@@ -50,7 +50,7 @@ contract ERC1404_Default_Values is ERC1404_Base_Setup {
     function test_Check_Account_Is_Not_Whitelisted(
         address randomAddress
     ) public view {
-        vm.assume(randomAddress != address(this) && randomAddress != token.owner());
+        vm.assume(randomAddress != address(this) && randomAddress != token.owner() && randomAddress != atomicSwapContractAddress);
         (uint receiveRestriction, uint sendRestriction) = token.getKYCData(randomAddress);
         assertEq(receiveRestriction, 0);
         assertEq(sendRestriction, 0);

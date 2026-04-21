@@ -62,4 +62,51 @@ contract ERC1404_Basic_Transfer_Test is ERC1404_Base_Setup {
         assertEq(token.balanceOf(addr2), transferAmount);
         assertEq(token.balanceOf(addr1), 0);
     }
+
+    // TransferFrom tests to confirm that contract allowance does not create an attack surface for arbitrary callers to transfer tokens on behalf of others
+
+    function test_ContractAllowance_DoesNotLetArbitraryCallerTransfer() public {
+        token.transfer(addr1, transferAmount);
+        token.modifyKYCData(addr3, 1, 1);
+
+        // addr1 approves the contract itself
+        vm.startPrank(addr1);
+        token.approve(address(token), transferAmount);
+        vm.stopPrank();
+        assertEq(token.allowance(addr1, address(token)), transferAmount);
+
+        // addr3 has no personal allowance from addr1 and attempts to exploit this
+        vm.startPrank(addr3);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IERC20Errors.ERC20InsufficientAllowance.selector,
+                addr3,          // spender checked is addr3 (caller), not address(token)
+                0,              // addr3's actual allowance from addr1
+                transferAmount
+            )
+        );
+        token.transferFrom(addr1, addr2, transferAmount);
+        vm.stopPrank();
+    }
+
+    function test_CallerAllowance_SucceedsWithoutContractAllowance() public {
+        token.transfer(addr1, transferAmount);
+
+        // Confirm contract has zero allowance from addr1
+        assertEq(token.allowance(addr1, address(token)), 0);
+
+        vm.startPrank(addr1);
+        token.approve(addr2, transferAmount);
+        vm.stopPrank();
+
+        vm.startPrank(addr2);
+        token.transferFrom(addr1, addr2, transferAmount);
+        vm.stopPrank();
+
+        assertEq(token.balanceOf(addr2), transferAmount);
+        assertEq(token.balanceOf(addr1), 0);
+        // Allowance correctly spent down from caller (addr2), contract untouched
+        assertEq(token.allowance(addr1, addr2), 0);
+        assertEq(token.allowance(addr1, address(token)), 0);
+    }
 }
