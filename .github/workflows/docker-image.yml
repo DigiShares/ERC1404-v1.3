@@ -1,0 +1,12 @@
+name: Docker Image CI
+on:
+  pull_request:
+    types: [opened, reopened]
+jobs:
+  test:
+    runs-on: ghcr.io/foundry-rs/foundry:nightly-a117fbfa41edbaa1618ed099d78d65727bff4790
+    steps:
+    - name: install forge
+      run: forge install --no-git
+    - name: run tests
+      run: forge test -vvv
